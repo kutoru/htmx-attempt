@@ -1,6 +1,7 @@
 use anyhow::{Context, Result};
 use askama::Template;
 use axum::{http::StatusCode, response::{Html, IntoResponse, Response}, routing::get, Router};
+use tower_http::services::ServeDir;
 use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -14,9 +15,13 @@ async fn main() -> Result<()> {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    let router = Router::new().route("/", get(hello));
+    let pwd = std::env::current_dir().unwrap();
     let port = 727;
     let addr = std::net::SocketAddr::from(([0, 0, 0, 0], port));
+    let router = Router::new().route("/", get(hello)).nest_service(
+        "/assets",
+        ServeDir::new(format!("{}/assets", pwd.to_str().unwrap())),
+    );
 
     info!("Listening on port {}", port);
 
